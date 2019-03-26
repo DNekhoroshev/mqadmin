@@ -1,0 +1,1 @@
+"C:\Program Files\Java\jdk1.8.0_102\bin\java" -jar SceneBuilder-8.2.0.jar %1

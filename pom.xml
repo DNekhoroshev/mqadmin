@@ -1,0 +1,92 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<parent>
+		<groupId>ru.sberbank.cib.gmbus.parent</groupId>
+		<artifactId>parent</artifactId>
+		<version>1.4</version>
+	</parent>
+	
+	<groupId>ru.sberbank.cib.gmbus</groupId>
+	<artifactId>mqadmin</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>MQAdminTool</name>
+
+	<!-- Build -->
+	<build>
+		<finalName>${project.artifactId}</finalName>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.zenjava</groupId>
+				<artifactId>javafx-maven-plugin</artifactId>
+				<version>8.8.3</version>
+				<configuration>
+					<mainClass>your.main.class.which.extends.javafx.Application</mainClass>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	<dependencies>
+		<!-- JavaFX libraries -->
+		<dependency>
+		    <groupId>org.controlsfx</groupId>
+    		<artifactId>controlsfx</artifactId>
+    		<version>8.40.14</version>
+		</dependency>
+		<!-- MQ libraries -->
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>com.ibm.mq</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>com.ibm.mqjms</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>com.ibm.mq.headers</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>com.ibm.mq.jmqi</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>com.ibm.mq.pcf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>bcprov-jdk15on-152</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>bcpkix-jdk15on-152</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>javax.jms</groupId>
+			<artifactId>javax.jms-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.jndi</groupId>
+			<artifactId>fscontext</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.jndi</groupId>
+			<artifactId>providerutil</artifactId>
+		</dependency>
+		<!-- Additional libraries -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+		</dependency>		
+	</dependencies>
+</project>
