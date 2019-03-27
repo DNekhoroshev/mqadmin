@@ -13,6 +13,8 @@ import com.ibm.mq.pcf.MQCFST;
 import com.ibm.mq.pcf.PCFAgent;
 import com.ibm.mq.pcf.PCFParameter;
 
+import ru.sberbank.cib.gmbus.mqadmin.connect.MQHelper;
+
 public class Test {
 
 	public static void main(String[] args) throws Exception {
@@ -40,6 +42,8 @@ public class Test {
         
         qmRequest = new com.ibm.mq.MQQueueManager(qmNameRequest,propMap);
         
+        MQHelper.getQueueStatus(qmRequest, "ALIASQ");        
+        
         /*String qNameRequest = "ABC";                
 
         int reqQueueOpt = MQConstants.MQOO_OUTPUT | MQConstants.MQOO_SET_IDENTITY_CONTEXT;
@@ -51,50 +55,7 @@ public class Test {
         qRequest.put(reqMsg, reqMsgOpt);
         qRequest.close();*/
         
-        PCFAgent agent = new PCFAgent(qmRequest);
         
-        PCFParameter [] 	parameters = 
-			{
-				new MQCFST (CMQC.MQCA_Q_NAME, "*"), 
-				new MQCFIN (CMQC.MQIA_Q_TYPE, CMQC.MQQT_ALL)
-			};
-        
-        
-        MQMessage [] 		responses;
-		MQCFH 			cfh;
-		MQCFSL 			cfsl;
-		
-		System.out.print ("Sending PCF request... ");
-		responses = agent.send (CMQCFC.MQCMD_INQUIRE_Q_NAMES, parameters);
-		System.out.println ("Received reply.");
-		cfh = new MQCFH (responses [0]);
-		
-		// Check the PCF header (MQCFH) in the first response message
-
-					if (cfh.reason == 0)
-					{
-						System.out.println ("Queue names:");
-						cfsl = new MQCFSL (responses [0]);
-
-						for (int i = 0; i < cfsl.strings.length; i++)
-						{
-							System.out.println ("\t" + cfsl.strings [i]);
-						}
-					}
-					else
-					{
-						System.out.println (cfh);
-
-						// Walk through the returned parameters describing the error
-
-						for (int i = 0; i < cfh.parameterCount; i++)
-						{
-							System.out.println (PCFParameter.nextParameter (responses [0]));
-						}
-					}
-
-        
-        qmRequest.disconnect();
 	}
 
 }

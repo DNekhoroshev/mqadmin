@@ -1,0 +1,1 @@
+run with jvm arg: -Dcom.ibm.mq.cfg.useIBMCipherMappings=false

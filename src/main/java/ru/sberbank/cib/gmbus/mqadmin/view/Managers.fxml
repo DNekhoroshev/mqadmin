@@ -14,7 +14,6 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.text.Font?>
 
-
 <TabPane xmlns="http://javafx.com/javafx/8.0.102" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.sberbank.cib.gmbus.mqadmin.view.ManagersController">
    <tabs>
       <Tab fx:id="mTab" onSelectionChanged="#handleTabSelect" text="Managers">
@@ -78,14 +77,17 @@
                   </Label>
                </top>
                <center>
-                  <TableView prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+                  <TableView fx:id="queueTable" BorderPane.alignment="CENTER">
                     <columns>
-                      <TableColumn prefWidth="75.0" text="Name" />
-                      <TableColumn prefWidth="75.0" text="Type" />
-                        <TableColumn prefWidth="75.0" text="Readers" />
-                        <TableColumn prefWidth="75.0" text="Writers" />
-                        <TableColumn prefWidth="75.0" text="Depth" />
+                      <TableColumn fx:id="queueNameColumn" prefWidth="75.0" text="Name" />
+                      <TableColumn fx:id="queueTypeColumn" prefWidth="75.0" text="Type" />
+                        <TableColumn fx:id="queueReadersColumn" prefWidth="75.0" text="Readers" />
+                        <TableColumn fx:id="queueWritersColumn" prefWidth="75.0" text="Writers" />
+                        <TableColumn fx:id="queueDepthColumn" prefWidth="75.0" text="Depth" />
                     </columns>
+                     <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                     </columnResizePolicy>
                   </TableView>
                </center>
             </BorderPane>

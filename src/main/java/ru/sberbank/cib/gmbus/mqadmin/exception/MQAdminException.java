@@ -1,7 +1,9 @@
 package ru.sberbank.cib.gmbus.mqadmin.exception;
 
+import com.ibm.mq.MQException;
 import com.ibm.mq.MQMessage;
 import com.ibm.mq.pcf.MQCFH;
+import com.ibm.mq.pcf.PCFMessage;
 import com.ibm.mq.pcf.PCFParameter;
 
 public class MQAdminException extends Exception {
@@ -18,10 +20,17 @@ public class MQAdminException extends Exception {
 			{
 				desc.append(PCFParameter.nextParameter (response));
 			}
-		} catch (Exception e) {
+		} catch (Exception ex) {
 			desc.append("Unknown error");
 		}		
 		description = desc.toString();
+	}	
+	
+	public MQAdminException(MQException e) {		
+		super(e);
+		this.rc = e.getReason();
+		StringBuilder desc = new StringBuilder();
+		description = desc.append("CC: ").append(e.completionCode).append(", RC: ").append(e.reasonCode).toString();		 
 	}
 
 	@Override

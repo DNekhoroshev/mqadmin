@@ -17,6 +17,8 @@ import com.ibm.mq.MQQueueManager;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -33,6 +35,7 @@ import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQManagerAttributes;
+import ru.sberbank.cib.gmbus.mqadmin.model.MQQueueAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.view.ManagersController;
 import ru.sberbank.cib.gmbus.mqadmin.view.RootLayoutController;
 
@@ -44,6 +47,8 @@ public class MQAdmin extends Application {
 	private MQManagerAttributes currentQM;
 	private List<MQManagerAttributes> mqManagers = new ArrayList<>();
 	private Map<MQManagerAttributes,MQQueueManager> connCache = new HashMap<>();
+	
+	private ObservableList<MQQueueAttributes> currentQueueList = FXCollections.observableArrayList();
 	
 	public Stage getPrimaryStage() {
 		return primaryStage;
@@ -211,6 +216,18 @@ public class MQAdmin extends Application {
 
 	public void setCurrentQM(MQManagerAttributes currentQM) {
 		this.currentQM = currentQM;
-	}	
+	}
+	
+	public MQQueueManager getCurrentQMConnection(){
+		return connCache.get(currentQM);
+	}
+
+	public ObservableList<MQQueueAttributes> getCurrentQueueList() {
+		return currentQueueList;
+	}
+
+	public void setCurrentQueueList(ObservableList<MQQueueAttributes> currentQueueList) {
+		this.currentQueueList = currentQueueList;
+	}
     
 }

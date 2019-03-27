@@ -1,5 +1,7 @@
 package ru.sberbank.cib.gmbus.mqadmin.view;
 
+import java.util.List;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -8,13 +10,16 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import ru.sberbank.cib.gmbus.mqadmin.MQAdmin;
 import ru.sberbank.cib.gmbus.mqadmin.connect.MQHelper;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQManagerAttributes;
+import ru.sberbank.cib.gmbus.mqadmin.model.MQQueueAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.model.ObservableProperty;
 
 public class ManagersController {
@@ -38,6 +43,7 @@ public class ManagersController {
     private TreeView qmgrsTree;
     private TreeItem qmgrsRoot = new TreeItem<String>("All queue managers");
     
+    // Queue managers table
     @FXML
     private TableView<ObservableProperty> qmgrPropTable;
 
@@ -46,6 +52,25 @@ public class ManagersController {
     
     @FXML
     private TableColumn<ObservableProperty,String> qmgrPropValueColumn;
+    
+    // Queue table
+    @FXML
+    private TableView<MQQueueAttributes> queueTable;        
+    
+    @FXML
+    private TableColumn<MQQueueAttributes, String> queueNameColumn;
+    
+    @FXML
+    private TableColumn<MQQueueAttributes, String> queueTypeColumn;
+    
+    @FXML
+    private TableColumn<MQQueueAttributes, Number> queueDepthColumn;
+    
+    @FXML
+    private TableColumn<MQQueueAttributes, Number> queueReadersColumn;
+    
+    @FXML
+    private TableColumn<MQQueueAttributes, Number> queueWritersColumn;    
     
     @FXML
     private Button showHiddenButton;
@@ -57,7 +82,7 @@ public class ManagersController {
     private Label currentQmgrLabelT;
     
     private boolean showHidden = false;
-    
+    private boolean currentQMWasChanged = false;
     
     public void setMainApp(MQAdmin mainApp) {
         this.mainApp = mainApp;
@@ -73,6 +98,9 @@ public class ManagersController {
      */
     @FXML
     private void initialize() {
+    	
+    	queueTable.setRowFactory(getQueuesRowFactory());
+    	
     	qmgrsTree.getSelectionModel().selectedItemProperty().addListener(
     			(observable, oldValue, newValue) -> showQueueManagerDetails(newValue));   	
     	
@@ -82,7 +110,13 @@ public class ManagersController {
     				return new SimpleStringProperty("<hidden>");
     			else
     				return cellData.getValue().getValueProperty();
-    		});
+    		});    	
+    	
+    	queueNameColumn.setCellValueFactory(cellData -> cellData.getValue().getName());
+    	queueTypeColumn.setCellValueFactory(cellData -> cellData.getValue().getType());
+    	queueDepthColumn.setCellValueFactory(cellData -> cellData.getValue().getDepth());
+    	queueReadersColumn.setCellValueFactory(cellData -> cellData.getValue().getReaderCount());
+    	queueWritersColumn.setCellValueFactory(cellData -> cellData.getValue().getWriterCount());
     }    
     
     private void showQueueManagerDetails(Object qmgr){
@@ -125,6 +159,8 @@ public class ManagersController {
     		currentQmgrLabelQ.setText("<Not connected>");
 			currentQmgrLabelT.setText("<Not connected>");
     	}
+    	if(qmgr.isConnected())
+    		currentQMWasChanged = true;
     }
     
     @FXML
@@ -136,7 +172,16 @@ public class ManagersController {
     		if(mTab.isSelected()){
     			
     		}else if(qTab.isSelected()){
-    			
+				if (currentQMWasChanged) {
+					List<String> queueNames = MQHelper.getQueueNames(mainApp.getCurrentQMConnection());
+					for (String queueName : queueNames) {
+						MQQueueAttributes queueAttrs = MQHelper.getQueueStatus(mainApp.getCurrentQMConnection(),
+								queueName);
+						mainApp.getCurrentQueueList().add(queueAttrs);
+					}
+					queueTable.setItems(mainApp.getCurrentQueueList());
+					currentQMWasChanged = false;
+				}
     		}else if(tTab.isSelected()){
     			
     		}else if(sTab.isSelected()){
@@ -191,6 +236,26 @@ public class ManagersController {
     @FXML
     private void handleClose(){   	
     	System.exit(0);
+    }
+    
+    private Callback<TableView<MQQueueAttributes>, TableRow<MQQueueAttributes>> getQueuesRowFactory(){
+    	return new Callback<TableView<MQQueueAttributes>, TableRow<MQQueueAttributes>>() {
+            @Override
+            public TableRow<MQQueueAttributes> call(TableView<MQQueueAttributes> tableView) {
+                final TableRow<MQQueueAttributes> row = new TableRow<MQQueueAttributes>() {
+                    @Override
+                    protected void updateItem(MQQueueAttributes q, boolean empty){
+                        super.updateItem(q, empty);                                              
+                        if((q!=null)&&(q.isUpdated())) {                          	
+                          	setStyle("-fx-background-color:lightyellow");                       
+                        }else{
+                        	setStyle("-fx-background-color:lightgreen");
+                        }
+                    }
+                };
+                return row;
+            }
+    	};
     }
     
 }
