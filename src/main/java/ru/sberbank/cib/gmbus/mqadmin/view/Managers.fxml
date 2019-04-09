@@ -14,7 +14,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.text.Font?>
 
-<TabPane xmlns="http://javafx.com/javafx/8.0.102" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.sberbank.cib.gmbus.mqadmin.view.ManagersController">
+<TabPane fx:id="mainTab" xmlns="http://javafx.com/javafx/8.0.102" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.sberbank.cib.gmbus.mqadmin.view.ManagersController">
    <tabs>
       <Tab fx:id="mTab" onSelectionChanged="#handleTabSelect" text="Managers">
          <content>

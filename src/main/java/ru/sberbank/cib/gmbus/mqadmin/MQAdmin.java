@@ -44,11 +44,13 @@ public class MQAdmin extends Application {
 	private StatusBar statusBar;
 	private Stage primaryStage;
 	
-	private MQManagerAttributes currentQM;
+	//private MQManagerAttributes currentQM;
 	private List<MQManagerAttributes> mqManagers = new ArrayList<>();
 	private Map<MQManagerAttributes,MQQueueManager> connCache = new HashMap<>();
 	
-	private ObservableList<MQQueueAttributes> currentQueueList = FXCollections.observableArrayList();
+	private Map<MQManagerAttributes,ObservableList<MQQueueAttributes>> cachedQueueList = new HashMap<>();
+	
+	public static final ObservableList<MQQueueAttributes> EMPTY_QUEUE_LIST = FXCollections.observableArrayList();
 	
 	public Stage getPrimaryStage() {
 		return primaryStage;
@@ -210,24 +212,19 @@ public class MQAdmin extends Application {
 		return connCache;
 	}
 
-	public MQManagerAttributes getCurrentQM() {
-		return currentQM;
+	public MQQueueManager getCurrentQMConnection(MQManagerAttributes qm){
+		return connCache.get(qm);
 	}
 
-	public void setCurrentQM(MQManagerAttributes currentQM) {
-		this.currentQM = currentQM;
-	}
-	
-	public MQQueueManager getCurrentQMConnection(){
-		return connCache.get(currentQM);
-	}
-
-	public ObservableList<MQQueueAttributes> getCurrentQueueList() {
-		return currentQueueList;
+	public ObservableList<MQQueueAttributes> getCurrentQueueList(MQManagerAttributes qm) {
+		if(cachedQueueList.get(qm)==null){
+			cachedQueueList.put(qm, FXCollections.observableArrayList());
+		}
+		return cachedQueueList.get(qm);
 	}
 
-	public void setCurrentQueueList(ObservableList<MQQueueAttributes> currentQueueList) {
-		this.currentQueueList = currentQueueList;
+	public void setCurrentQueueList(MQManagerAttributes qm, ObservableList<MQQueueAttributes> currentQueueList) {
+		cachedQueueList.put(qm, currentQueueList);
 	}
     
 }

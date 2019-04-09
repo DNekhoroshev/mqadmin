@@ -130,7 +130,7 @@ public class MQHelper {
 					oprocs = responses[0].getIntParameterValue(CMQC.MQIA_OPEN_OUTPUT_COUNT);
 				}
 				
-				System.out.println("Name=" + name + " : depth=" + depth + " : iprocs=" + iprocs + " : oprocs=" + oprocs + " : type="+queueTypeMap.get(type));
+				//System.out.println("Name=" + name + " : depth=" + depth + " : iprocs=" + iprocs + " : oprocs=" + oprocs + " : type="+queueTypeMap.get(type));
 				return new MQQueueAttributes(name, queueTypeMap.get(type), depth, iprocs, oprocs);
 			}
             
