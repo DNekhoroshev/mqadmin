@@ -42,12 +42,12 @@ public class MQQueueAttributes {
 		return writerCount;
 	}
 	
-	public String getNameString() {
-		return name.toString();
+	public String getNameString() {		
+		return name.getValue();
 	}
 
 	public String getTypeString() {
-		return type.toString();
+		return type.getValue();
 	}
 
 	public Long getDepthLong() {

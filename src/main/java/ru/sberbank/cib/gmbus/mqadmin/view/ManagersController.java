@@ -15,16 +15,19 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import ru.sberbank.cib.gmbus.mqadmin.MQAdmin;
+import ru.sberbank.cib.gmbus.mqadmin.MQAdmin.MQSession;
 import ru.sberbank.cib.gmbus.mqadmin.connect.MQHelper;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQManagerAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQQueueAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.model.ObservableProperty;
+import ru.sberbank.cib.gmbus.mqadmin.util.QueueTableMenuHandler;
 
 public class ManagersController {
 	
@@ -80,6 +83,10 @@ public class ManagersController {
     private TableColumn<MQQueueAttributes, Number> queueWritersColumn;    
     
     @FXML
+    private TextField queueFilterField;
+    
+    
+    @FXML
     private Button showHiddenButton;
     
     @FXML
@@ -92,6 +99,9 @@ public class ManagersController {
     
     public void setMainApp(MQAdmin mainApp) {
         this.mainApp = mainApp;
+        
+        QueueTableMenuHandler.registerContextMenu(queueTable, mainApp);
+        
         qmgrsTree.setRoot(qmgrsRoot);
         for(MQManagerAttributes qmgr : mainApp.getMqManagers()){
         	qmgrsRoot.getChildren().add(new TreeItem<MQManagerAttributes>(qmgr));
@@ -155,7 +165,9 @@ public class ManagersController {
     		if(valueObject instanceof MQManagerAttributes){
     			MQManagerAttributes currentQM = (MQManagerAttributes)valueObject;
     			showQMInfo(currentQM); 
-    			queueTable.setItems(mainApp.getCurrentQueueList(currentQM));
+    			
+    			ObservableList<MQQueueAttributes> qList = FXCollections.observableArrayList(mainApp.getCurrentQueueList(currentQM,null));
+    			queueTable.setItems(qList);
     		}
     	}  	
     }
@@ -193,15 +205,17 @@ public class ManagersController {
     		return;			
     	}
 		
+    	TreeItem<MQManagerAttributes> selectedManager = (TreeItem)qmgrsTree.getSelectionModel().getSelectedItem();
+    	
     	try {
-    		if(mTab.isSelected()){
-    			System.out.println("M");
-    		}else if(qTab.isSelected()){	
-    			
+    		if(mTab.isSelected()){    			
+    			mainApp.setCurrentSession(null);
+    		}else if(qTab.isSelected()){    			
+    			mainApp.setCurrentSession(mainApp.getConnCache().get(selectedManager.getValue()));
     		}else if(tTab.isSelected()){
-    			System.out.println("T");
+    			mainApp.setCurrentSession(mainApp.getConnCache().get(selectedManager.getValue()));
     		}else if(sTab.isSelected()){
-    			System.out.println("S");
+    			mainApp.setCurrentSession(mainApp.getConnCache().get(selectedManager.getValue()));
     		} 
     	}catch(Exception e){
     		mainApp.showException(e);
@@ -212,10 +226,14 @@ public class ManagersController {
     public void handleConnect(){
     	TreeItem<MQManagerAttributes> selectedManager = (TreeItem)qmgrsTree.getSelectionModel().getSelectedItem();
     	
+    	if(selectedManager.getValue().isConnected()){
+    		return;
+    	}
+    	
     	try {
 			mainApp.getConnCache().put(
 					selectedManager.getValue(),
-					MQHelper.getMQConnection(selectedManager.getValue())
+					MQHelper.getMQSession(selectedManager.getValue())
 					);
 			selectedManager.getValue().setConnected(true);		
 			showQMInfo(selectedManager.getValue());			
@@ -230,8 +248,12 @@ public class ManagersController {
     public void handleDisconnect(){
     	TreeItem<MQManagerAttributes> selectedManager = (TreeItem)qmgrsTree.getSelectionModel().getSelectedItem();
     	
+    	if(!selectedManager.getValue().isConnected()){
+    		return;
+    	}
+    	
     	try {			
-			mainApp.getConnCache().get(selectedManager.getValue()).close();
+			mainApp.getConnCache().get(selectedManager.getValue()).getMqManager().close();
 			mainApp.getConnCache().remove(selectedManager.getValue());
 			selectedManager.getValue().setConnected(false);
 			showQMInfo(selectedManager.getValue());
@@ -254,29 +276,55 @@ public class ManagersController {
     }
     
     @FXML
+    private void handleQueueFilterChanged(){
+    	String filterString = queueFilterField.getText();
+    	    	
+    	queueTable.getItems().clear(); 
+    	
+		try {
+			TreeItem<MQManagerAttributes> selectedManager = (TreeItem)qmgrsTree.getSelectionModel().getSelectedItem();			
+
+			ObservableList<MQQueueAttributes> qList = FXCollections.observableArrayList(mainApp.getCurrentQueueList(selectedManager.getValue(),filterString));
+			queueTable.setItems(qList);			
+			
+		} catch (Exception e) {
+				mainApp.showException(e);
+		}
+    }    
+    
+    @FXML
     private void handleClose(){   	
     	System.exit(0);
     }
     
+    @FXML
+    private void handleRefresh(){    	
+    	TreeItem<MQManagerAttributes> selectedManager = (TreeItem)qmgrsTree.getSelectionModel().getSelectedItem();
+    	refreshQueues(selectedManager.getValue());
+    }
+    
     private void refreshQueues(MQManagerAttributes qmAttrs) {
 		
-    	MQQueueManager qm = mainApp.getCurrentQMConnection(qmAttrs);
-    	if(qm==null){
+    	MQSession session = mainApp.getCurrentQMSession(qmAttrs);
+    	if(session==null){
     		queueTable.setItems(mainApp.EMPTY_QUEUE_LIST);
     		return;
-    	}
+    	}    	
+		
+    	mainApp.getCurrentQueueList(qmAttrs,null).clear();
     	
-		try {
-			List<String> queueNames = MQHelper.getQueueNames(qm);
-			for (String queueName : queueNames) {
-				MQQueueAttributes queueAttrs = MQHelper.getQueueStatus(qm, queueName);
-				mainApp.getCurrentQueueList(qmAttrs).add(queueAttrs);
+    	try {
+			List<String> queueNames = MQHelper.getQueueNames(session);			
+			for (String queueName : queueNames) {				
+				MQQueueAttributes queueAttrs = MQHelper.getQueueStatus(session, queueName);				
+				mainApp.getCurrentQueueList(qmAttrs,null).add(queueAttrs);
 			}
 		} catch (Exception e) {
 			mainApp.showException(e);
 		}
 		
-		queueTable.setItems(mainApp.getCurrentQueueList(qmAttrs));		
+		ObservableList<MQQueueAttributes> qList = FXCollections.observableArrayList(mainApp.getCurrentQueueList(qmAttrs,null));
+		queueTable.setItems(qList);		
 	}   
     
     private Callback<TableView<MQQueueAttributes>, TableRow<MQQueueAttributes>> getQueuesRowFactory(){

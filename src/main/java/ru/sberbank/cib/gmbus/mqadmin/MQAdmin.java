@@ -8,12 +8,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import javax.jms.Connection;
+import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.controlsfx.control.StatusBar;
 
 import com.ibm.mq.MQQueueManager;
+import com.ibm.mq.pcf.PCFMessageAgent;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -32,23 +33,46 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQManagerAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQQueueAttributes;
+import ru.sberbank.cib.gmbus.mqadmin.view.MQBrowseMessageController;
+import ru.sberbank.cib.gmbus.mqadmin.view.MQPutMessageController;
 import ru.sberbank.cib.gmbus.mqadmin.view.ManagersController;
 import ru.sberbank.cib.gmbus.mqadmin.view.RootLayoutController;
 
 public class MQAdmin extends Application {
 
-	private StatusBar statusBar;
-	private Stage primaryStage;
+	public StatusBar statusBar;
+	private Stage primaryStage,broweMessagesStage,putMessasgeStage;
 	
-	//private MQManagerAttributes currentQM;
+	public static class MQSession {
+		private MQQueueManager mqManager;
+		private PCFMessageAgent mqPCFAgent;		
+			
+		public MQSession(MQQueueManager mqManager, PCFMessageAgent mqPCFAgent) {
+			super();
+			this.mqManager = mqManager;
+			this.mqPCFAgent = mqPCFAgent;
+		}
+		
+		public MQQueueManager getMqManager() {
+			return mqManager;
+		}
+		public PCFMessageAgent getMqPCFAgent() {
+			return mqPCFAgent;
+		}	
+		
+	}
+	
+	private MQSession currentSession;
+	
 	private List<MQManagerAttributes> mqManagers = new ArrayList<>();
-	private Map<MQManagerAttributes,MQQueueManager> connCache = new HashMap<>();
+	private Map<MQManagerAttributes,MQSession> connCache = new HashMap<>();
 	
-	private Map<MQManagerAttributes,ObservableList<MQQueueAttributes>> cachedQueueList = new HashMap<>();
+	private Map<MQManagerAttributes,List<MQQueueAttributes>> cachedQueueList = new HashMap<>();
 	
 	public static final ObservableList<MQQueueAttributes> EMPTY_QUEUE_LIST = FXCollections.observableArrayList();
 	
@@ -119,6 +143,54 @@ public class MQAdmin extends Application {
             // Даём контроллеру доступ к главному приложению.
             ((ManagersController)loader.getController()).setMainApp(this);
                         
+        } catch (IOException e) {
+        	showException(e);
+        }
+    }
+    
+    public void showBrowseMessageDialog(String queueName, Long queueDepth){    	 	
+    	try {            
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(MQAdmin.class.getResource("view/BrowseMessagesView.fxml"));
+            BorderPane personOverview = (BorderPane) loader.load();
+
+            // Даём контроллеру доступ к главному приложению.
+            MQBrowseMessageController controller = loader.getController();
+            controller.initialize(queueName,queueDepth,this);            
+            
+            //Отображаем сцену, содержащую корневой макет.
+            broweMessagesStage = new Stage();
+            broweMessagesStage.setTitle("Browse messages");
+            broweMessagesStage.initModality(Modality.APPLICATION_MODAL);
+            
+            Scene scene = new Scene(personOverview);
+            broweMessagesStage.setScene(scene);
+            broweMessagesStage.show();            
+        } catch (IOException e) {
+            showException(e);
+        } 
+    }
+    
+    public void showPutMessageDialog(String queueName,Properties props){    		
+    	try {            
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(MQAdmin.class.getResource("view/PutMessageView.fxml"));
+            BorderPane personOverview = (BorderPane) loader.load();
+
+            // Даём контроллеру доступ к главному приложению.
+            MQPutMessageController controller = loader.getController();
+            controller.setMainApp(this);  
+            controller.setInitialProps(props);
+            controller.setQueueName(queueName);
+            
+            //Отображаем сцену, содержащую корневой макет.
+            putMessasgeStage = new Stage();
+            putMessasgeStage.setTitle("Put message");
+            putMessasgeStage.initModality(Modality.APPLICATION_MODAL);
+            
+            Scene scene = new Scene(personOverview);
+            putMessasgeStage.setScene(scene);
+            putMessasgeStage.show();            
         } catch (IOException e) {
         	showException(e);
         }
@@ -208,23 +280,35 @@ public class MQAdmin extends Application {
 		return mqManagers;
 	}
 
-	public Map<MQManagerAttributes,MQQueueManager> getConnCache() {
+	public Map<MQManagerAttributes,MQSession> getConnCache() {
 		return connCache;
 	}
 
-	public MQQueueManager getCurrentQMConnection(MQManagerAttributes qm){
+	public MQSession getCurrentQMSession(MQManagerAttributes qm){
 		return connCache.get(qm);
 	}
 
-	public ObservableList<MQQueueAttributes> getCurrentQueueList(MQManagerAttributes qm) {
+	public List<MQQueueAttributes> getCurrentQueueList(MQManagerAttributes qm,String filterString) {		
 		if(cachedQueueList.get(qm)==null){
-			cachedQueueList.put(qm, FXCollections.observableArrayList());
+			cachedQueueList.put(qm, new ArrayList<>());
 		}
-		return cachedQueueList.get(qm);
+		if(filterString==null||filterString.isEmpty()){
+			return cachedQueueList.get(qm);
+		}else{
+			return cachedQueueList.get(qm).stream().filter(q->q.getNameString().contains(filterString)).collect(Collectors.toList());	
+		}
 	}
 
-	public void setCurrentQueueList(MQManagerAttributes qm, ObservableList<MQQueueAttributes> currentQueueList) {
+	public void setCurrentQueueList(MQManagerAttributes qm, List<MQQueueAttributes> currentQueueList) {
 		cachedQueueList.put(qm, currentQueueList);
+	}
+
+	public MQSession getCurrentSession() {
+		return currentSession;
+	}
+
+	public void setCurrentSession(MQSession currentSession) {
+		this.currentSession = currentSession;
 	}
     
 }

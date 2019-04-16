@@ -42,7 +42,7 @@ public class Test {
         
         qmRequest = new com.ibm.mq.MQQueueManager(qmNameRequest,propMap);
         
-        MQHelper.getQueueStatus(qmRequest, "ALIASQ");        
+        //MQHelper.getQueueStatus(qmRequest, "ALIASQ");        
         
         /*String qNameRequest = "ABC";                
 
