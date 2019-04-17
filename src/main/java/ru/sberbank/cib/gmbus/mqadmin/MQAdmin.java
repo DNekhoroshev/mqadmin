@@ -295,7 +295,7 @@ public class MQAdmin extends Application {
 		if(filterString==null||filterString.isEmpty()){
 			return cachedQueueList.get(qm);
 		}else{
-			return cachedQueueList.get(qm).stream().filter(q->q.getNameString().contains(filterString)).collect(Collectors.toList());	
+			return cachedQueueList.get(qm).stream().filter(q->q.getNameString().toLowerCase().contains(filterString.toLowerCase())).collect(Collectors.toList());	
 		}
 	}
 

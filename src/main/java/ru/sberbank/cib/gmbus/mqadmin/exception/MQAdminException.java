@@ -24,7 +24,7 @@ public class MQAdminException extends Exception {
 			desc.append("Unknown error");
 		}		
 		description = desc.toString();
-	}	
+	}		
 	
 	public MQAdminException(MQException e) {		
 		super(e);

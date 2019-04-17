@@ -98,8 +98,39 @@ public class MQHelper {
         MQQueueManager qm =  new com.ibm.mq.MQQueueManager(qmgr.getQmName(),propMap);
         PCFMessageAgent agent = new PCFMessageAgent(qm);
         return new MQAdmin.MQSession(qm, agent);
-    }   
-	
+    }	
+    
+    public static void moveMessages(MQQueueManager qmgr,String sourceQueueName,String targetQueueName) throws Exception{
+    	 MQQueue sourceQueue = getQueue(qmgr, sourceQueueName, false);
+    	 MQQueue targetQueue = qmgr.accessQueue(targetQueueName, MQConstants.MQOO_OUTPUT | MQConstants.MQOO_INPUT_AS_Q_DEF);
+    	
+    	 MQMessage theMessage    = new MQMessage();
+		 
+    	 MQGetMessageOptions gmo = new MQGetMessageOptions();			
+		 gmo.matchOptions=MQConstants.MQMO_NONE;
+		 gmo.waitInterval=100;			
+		 gmo.options=MQConstants.MQGMO_NO_WAIT;			
+		
+		 boolean thereAreMessages = true;		 
+		 
+		 while (thereAreMessages) {
+				try {		
+					sourceQueue.get(theMessage, gmo);
+					targetQueue.put(theMessage);
+					gmo.options = MQConstants.MQGMO_NO_WAIT;
+				} catch (MQException e) {
+					if (e.reasonCode == MQConstants.MQRC_NO_MSG_AVAILABLE) {
+						thereAreMessages = false;
+						break;
+					}
+					throw e;
+				} 
+			}
+		 
+		sourceQueue.close();
+		targetQueue.close();
+    }
+    
     public static MQAsyncStatus send(MQQueueManager qmgr,String queueName,boolean persistent, Map<String,String> headers, String text) throws MQException, IOException{
     	int openOptions = MQConstants.MQOO_OUTPUT | MQConstants.MQOO_INPUT_AS_Q_DEF;
     	MQQueue queue = qmgr.accessQueue(queueName, openOptions);
@@ -151,10 +182,57 @@ public class MQHelper {
     	return qmgr.accessQueue(qName, openOptions);    	
     }
     
+    public static void purgeQueue(MQSession mqSession, String qName,boolean fastMode) throws Exception{    	
+    	
+		if (fastMode) {
+			PCFMessageAgent agent = null;
+			PCFMessage request = null;
+			PCFMessage[] responses = null;
+
+			try {
+				agent = mqSession.getMqPCFAgent();
+
+				request = new PCFMessage(MQConstants.MQCMD_CLEAR_Q);
+				request.addParameter(MQConstants.MQCA_Q_NAME, qName);
+				responses = agent.send(request);
+				if ((responses[0]).getCompCode() != MQConstants.MQCC_OK) {
+					throw new MQAdminException(responses[0].getReason(), null);
+				}
+			} catch (MQException e) {
+				throw new MQAdminException(e);
+			}
+		}else{
+			 MQQueue queue = getQueue(mqSession.getMqManager(), qName, false);
+			 MQMessage theMessage    = new MQMessage();
+			 MQGetMessageOptions gmo = new MQGetMessageOptions();
+				
+			 gmo.matchOptions=MQConstants.MQMO_NONE;
+			 gmo.waitInterval=100;
+				
+			 gmo.options=MQConstants.MQGMO_WAIT;			
+			
+			 boolean thereAreMessages = true;			 
+			 
+			 while (thereAreMessages) {
+					try {		
+						queue.get(theMessage, gmo);
+						gmo.options = MQConstants.MQGMO_WAIT;
+					} catch (MQException e) {
+						if (e.reasonCode == MQConstants.MQRC_NO_MSG_AVAILABLE) {
+							thereAreMessages = false;
+							break;
+						}						
+						throw new MQAdminException(e);						
+					} 
+			}
+			 
+			queue.close();
+		}
+    }
+    
 	public static List<String> getQueueNames(MQSession mqSession) throws Exception {
 
-		com.ibm.mq.jms.MQQueueConnectionFactory g;
-		List<String> result = new ArrayList<>();
+		List<String> result = new ArrayList<>(); 
 
 		PCFAgent agent = mqSession.getMqPCFAgent();
 		PCFParameter[] parameters = { new MQCFST(MQConstants.MQCA_Q_NAME, "*"),
@@ -175,30 +253,7 @@ public class MQHelper {
 
 		return result;
 
-	}
-    
-    /*public static List<String> getQueueNames(MQSession mqSession) throws Exception{
-    	
-    	com.ibm.mq.jms.MQQueueConnectionFactory g;
-    	List<String> result = new ArrayList<>();
-    	
-    	PCFMessageAgent agent = mqSession.getMqPCFAgent();    	
-    	PCFMessage request = new PCFMessage(MQConstants.MQCMD_INQUIRE_Q_NAMES);
-    	request.addParameter(MQConstants.MQCA_Q_NAME, "*"); 
-    	request.addParameter(MQConstants.MQIA_Q_TYPE, MQConstants.MQQT_ALL);
-    	
-    	PCFMessage[] responses = agent.send(request);   	   	    	
-    	
-    	if ((responses[0]).getCompCode() == MQConstants.MQCC_OK) {		
-    		System.out.println(responses[0].getStringParameterValue(MQConstants.MQCA_Q_NAME));			
-		}
-		else{
-			throw new MQAdminException(responses [0].getReason(),null);
-		}
-    	
-    	return result;
-    	
-    }   */
+	}   
     
     public static MQQueueAttributes getQueueStatus(MQSession mqSession, String qName) throws Exception{
     	PCFMessageAgent agent = null;
@@ -232,7 +287,7 @@ public class MQHelper {
 
 				int type = responses[0].getIntParameterValue(MQConstants.MQIA_Q_TYPE);
 				
-				if(type==CMQC.MQQT_LOCAL){
+				if(type==MQConstants.MQQT_LOCAL){
 					depth = responses[0].getIntParameterValue(MQConstants.MQIA_CURRENT_Q_DEPTH);
 					iprocs = responses[0].getIntParameterValue(MQConstants.MQIA_OPEN_INPUT_COUNT);
 					oprocs = responses[0].getIntParameterValue(MQConstants.MQIA_OPEN_OUTPUT_COUNT);
@@ -409,11 +464,6 @@ public class MQHelper {
 
         return new Gson().toJson(acceptedHeaders);
     }    
-    
-    @SuppressWarnings("unchecked")
-    private static Map<String, String> extractMessageHeaders(String json) {
-        return new Gson().fromJson(json, HashMap.class);
-    }
     
     private static String getExportFileName(String queueName){
 		DateFormat df = new SimpleDateFormat("MM_dd_yyyy_HH_mm_ss");

@@ -323,7 +323,7 @@ public class ManagersController {
 			mainApp.showException(e);
 		}
 		
-		ObservableList<MQQueueAttributes> qList = FXCollections.observableArrayList(mainApp.getCurrentQueueList(qmAttrs,null));
+		ObservableList<MQQueueAttributes> qList = FXCollections.observableArrayList(mainApp.getCurrentQueueList(qmAttrs,queueFilterField.getText()));
 		queueTable.setItems(qList);		
 	}   
     

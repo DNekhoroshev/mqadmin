@@ -73,7 +73,7 @@ public class RootLayoutController {
     
     @FXML
 	private void handleMenuAbout(){
-		mainApp.showInfo("This is a simple MQ command app v.1.0.0\n (c) Nekhoroshev Dmitry <Dmitry_Nekhoroshev@sberbank-cib.ru>,\n2019.02");
+		mainApp.showInfo("This is a simple MQ command app v.0.0.9\n (c) Nekhoroshev Dmitry <Dmitry_Nekhoroshev@sberbank-cib.ru>,\n2019.02");
 	}
     
     @FXML
