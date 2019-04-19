@@ -15,7 +15,7 @@
 
 	<!-- Build -->
 	<build>
-		<finalName>${project.artifactId}</finalName>
+		<finalName>${project.artifactId}</finalName>		
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -26,13 +26,38 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>com.zenjava</groupId>
-				<artifactId>javafx-maven-plugin</artifactId>
-				<version>8.8.3</version>
-				<configuration>
-					<mainClass>your.main.class.which.extends.javafx.Application</mainClass>
-				</configuration>
-			</plugin>
+			    <groupId>org.apache.maven.plugins</groupId>
+			    <artifactId>maven-dependency-plugin</artifactId>
+			    <executions>
+			        <execution>
+			            <id>copy-dependencies</id>
+			            <phase>prepare-package</phase>
+			            <goals>
+			                <goal>copy-dependencies</goal>
+			            </goals>
+			            <configuration>
+			                <outputDirectory>
+			                    ${project.build.directory}/libs
+			                </outputDirectory>
+			            </configuration>
+			        </execution>
+			    </executions>
+			</plugin>			
+			<plugin>
+			    <groupId>org.apache.maven.plugins</groupId>
+			    <artifactId>maven-jar-plugin</artifactId>
+			    <configuration>			        		        
+			        <archive>			            
+			            <manifest>
+			                <addClasspath>true</addClasspath>
+			                <classpathPrefix>libs/</classpathPrefix>
+			                <mainClass>
+			                    ru.sberbank.cib.gmbus.mqadmin.MQAdmin
+			                </mainClass>
+			            </manifest>
+			        </archive>
+			    </configuration>
+			</plugin>		
 		</plugins>
 	</build>
 	<dependencies>
@@ -47,10 +72,10 @@
 			<groupId>com.ibm.mq</groupId>
 			<artifactId>com.ibm.mq</artifactId>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>com.ibm.mq</groupId>
 			<artifactId>com.ibm.mqjms</artifactId>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>com.ibm.mq</groupId>
 			<artifactId>com.ibm.mq.headers</artifactId>

@@ -16,6 +16,7 @@ public class PurgeQueueCommand extends AbstractMqCommand {
 			if(objects[0] instanceof MQQueueAttributes){
 				MQQueueAttributes queue = (MQQueueAttributes)objects[0];
 				try {
+					queue = MQHelper.getQueueStatus(mainApp.getCurrentSession(), queue.getNameString());
 					if(queue.getReaderCountLong()==0&&queue.getWriterCountLong()==0){
 						MQHelper.purgeQueue(mainApp.getCurrentSession(), queue.getNameString(),true);
 					}else{

@@ -143,8 +143,13 @@ public class MQBrowseMessageController {
 	}
 
 	@FXML
-	private void handleClose() {
+	public void handleClose() {
 		Stage stage = (Stage) closeButton.getScene().getWindow();
+		try {
+			queue.close();			
+		} catch (MQException e) {
+			mainApp.showException(e);
+		}
 		stage.close();
 	}
 
@@ -179,7 +184,6 @@ public class MQBrowseMessageController {
 
 	@FXML
 	private void handleFirst() throws MQException {
-		initialize(this.queueName, this.queueDepth, this.mainApp);
 		initialize();
 		
 		MQMessage theMessage    = new MQMessage();

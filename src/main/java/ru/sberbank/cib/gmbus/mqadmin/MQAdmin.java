@@ -38,6 +38,7 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQManagerAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQQueueAttributes;
+import ru.sberbank.cib.gmbus.mqadmin.model.MQTopicAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.view.MQBrowseMessageController;
 import ru.sberbank.cib.gmbus.mqadmin.view.MQPutMessageController;
 import ru.sberbank.cib.gmbus.mqadmin.view.ManagersController;
@@ -47,6 +48,7 @@ public class MQAdmin extends Application {
 
 	public StatusBar statusBar;
 	private Stage primaryStage,broweMessagesStage,putMessasgeStage;
+	private ManagersController managersController;
 	
 	public static class MQSession {
 		private MQQueueManager mqManager;
@@ -73,8 +75,10 @@ public class MQAdmin extends Application {
 	private Map<MQManagerAttributes,MQSession> connCache = new HashMap<>();
 	
 	private Map<MQManagerAttributes,List<MQQueueAttributes>> cachedQueueList = new HashMap<>();
+	private Map<MQManagerAttributes,List<MQTopicAttributes>> cachedTopicList = new HashMap<>();
 	
 	public static final ObservableList<MQQueueAttributes> EMPTY_QUEUE_LIST = FXCollections.observableArrayList();
+	public static final ObservableList<MQTopicAttributes> EMPTY_TOPIC_LIST = FXCollections.observableArrayList();
 	
 	public Stage getPrimaryStage() {
 		return primaryStage;
@@ -141,8 +145,8 @@ public class MQAdmin extends Application {
             rootLayout.setCenter(managersOverview);
             
             // Даём контроллеру доступ к главному приложению.
-            ((ManagersController)loader.getController()).setMainApp(this);
-                        
+            this.managersController = (ManagersController)loader.getController(); 
+            this.managersController.setMainApp(this);                        
         } catch (IOException e) {
         	showException(e);
         }
@@ -165,7 +169,8 @@ public class MQAdmin extends Application {
             
             Scene scene = new Scene(personOverview);
             broweMessagesStage.setScene(scene);
-            broweMessagesStage.show();            
+            broweMessagesStage.show();
+            broweMessagesStage.setOnCloseRequest(e -> controller.handleClose());
         } catch (IOException e) {
             showException(e);
         } 
@@ -303,12 +308,26 @@ public class MQAdmin extends Application {
 		cachedQueueList.put(qm, currentQueueList);
 	}
 
+	public List<MQTopicAttributes> getCurrentTopicList(MQManagerAttributes qm) {		
+		if(cachedTopicList.get(qm)==null){
+			cachedTopicList.put(qm, new ArrayList<>());
+		}
+		return cachedTopicList.get(qm);		
+	}
+	
+	
 	public MQSession getCurrentSession() {
 		return currentSession;
 	}
 
 	public void setCurrentSession(MQSession currentSession) {
 		this.currentSession = currentSession;
+	}
+	
+	public void refreshQueues(MQManagerAttributes qmAttrs){
+		if(managersController!=null){
+			managersController.refreshQueuesAndTopics(qmAttrs);
+		}
 	}
     
 }

@@ -37,8 +37,6 @@ import com.ibm.mq.MQPutMessageOptions;
 import com.ibm.mq.MQQueue;
 import com.ibm.mq.MQQueueManager;
 import com.ibm.mq.constants.MQConstants;
-import com.ibm.mq.jms.MQConnectionFactory;
-import com.ibm.mq.pcf.CMQC;
 import com.ibm.mq.pcf.MQCFH;
 import com.ibm.mq.pcf.MQCFIN;
 import com.ibm.mq.pcf.MQCFSL;
@@ -55,6 +53,7 @@ import ru.sberbank.cib.gmbus.mqadmin.concurrent.ImportMessageTask.SourceFormat;
 import ru.sberbank.cib.gmbus.mqadmin.exception.MQAdminException;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQManagerAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.model.MQQueueAttributes;
+import ru.sberbank.cib.gmbus.mqadmin.model.MQTopicAttributes;
 import ru.sberbank.cib.gmbus.mqadmin.model.MessageHeader;
 import ru.sberbank.cib.gmbus.mqadmin.util.CommonConstants;
 
@@ -253,9 +252,71 @@ public class MQHelper {
 
 		return result;
 
-	}   
+	}
+	
+	public static List<String> getTopicNames(MQSession mqSession) throws Exception {
+
+		List<String> result = new ArrayList<>(); 
+
+		PCFAgent agent = mqSession.getMqPCFAgent();
+		PCFParameter[] parameters = { new MQCFST(MQConstants.MQCA_TOPIC_NAME, "*")};
+
+		MQMessage[] responses = agent.send(MQConstants.MQCMD_INQUIRE_TOPIC_NAMES, parameters);
+		MQCFH cfh = new MQCFH(responses[0]);
+		
+		if (cfh.reason == 0) {
+			MQCFSL cfsl = new MQCFSL(responses[0]);
+
+			for (int i = 0; i < cfsl.strings.length; i++) {
+				result.add(cfsl.strings[i]);
+			}
+		} else {
+			throw new MQAdminException(cfh.reason, responses[0]);
+		}
+
+		return result;
+
+	}
     
-    public static MQQueueAttributes getQueueStatus(MQSession mqSession, String qName) throws Exception{
+	public static MQTopicAttributes getTopicStatus(MQSession mqSession, String topicName) throws Exception{
+    	PCFMessageAgent agent = null;
+        PCFMessage   request = null;
+        PCFMessage[] responses = null;
+        
+        try{
+        	agent = mqSession.getMqPCFAgent();     	
+        	            
+        	request = new PCFMessage(MQConstants.MQCMD_INQUIRE_TOPIC);            
+            request.addParameter(MQConstants.MQCA_TOPIC_NAME, topicName);            
+            request.addParameter(MQConstants.MQIACF_TOPIC_ATTRS,
+                    new int [] { MQConstants.MQCA_TOPIC_NAME,
+                    			 MQConstants.MQCA_TOPIC_STRING                    			                                                                   
+                               });
+            responses = agent.send(request);
+            
+            String tName = "";
+            String tString = "";
+            
+			if (((responses[0]).getCompCode() == MQConstants.MQCC_OK)
+					&& ((responses[0]).getParameterValue(MQConstants.MQCA_TOPIC_NAME) != null)) {
+				tName = responses[0].getStringParameterValue(MQConstants.MQCA_TOPIC_NAME);
+				if (tName != null)
+					tName = tName.trim();
+				tString = responses[0].getStringParameterValue(MQConstants.MQCA_TOPIC_STRING);
+				if (tString != null)
+					tString = tString.trim();
+						
+				
+				return new MQTopicAttributes(tName, tString);
+			}            
+        }catch(MQException e){        
+        	e.printStackTrace();
+        	throw new MQAdminException(e);
+        }        
+        return null;
+    }
+	
+	public static MQQueueAttributes getQueueStatus(MQSession mqSession, String qName) throws Exception{
     	PCFMessageAgent agent = null;
         PCFMessage   request = null;
         PCFMessage[] responses = null;
@@ -396,7 +457,7 @@ public class MQHelper {
     	return currDepth;
     }
     
-    public static MQConnectionFactory getMQJMSConnectionFactory(MQManagerAttributes qmgr) throws Exception{
+    /*public static MQConnectionFactory getMQJMSConnectionFactory(MQManagerAttributes qmgr) throws Exception{
     	MQConnectionFactory factory = new MQConnectionFactory();
 		
     	factory.setTransportType(qmgr.getTransportType());
@@ -412,7 +473,7 @@ public class MQHelper {
 		}
 		
 		return factory;
-    }
+    }*/
 	
     
     private static SSLSocketFactory getSSLSocketFactory(MQManagerAttributes qmgr) throws Exception{
