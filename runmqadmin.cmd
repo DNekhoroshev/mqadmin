@@ -1,0 +1,1 @@
+java -Dcom.ibm.mq.cfg.useIBMCipherMappings=false -jar mqadmin.jar
